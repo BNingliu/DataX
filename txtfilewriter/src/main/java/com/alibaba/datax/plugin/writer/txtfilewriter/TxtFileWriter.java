@@ -215,6 +215,9 @@ public class TxtFileWriter extends Writer {
             String filePrefix = this.writerSliceConfig
                     .getString(com.alibaba.datax.plugin.unstructuredstorage.writer.Key.FILE_NAME);
 
+            String fileFormat = this.writerSliceConfig
+                    .getString(com.alibaba.datax.plugin.unstructuredstorage.writer.Key.FILE_FORMAT);
+
             Set<String> allFiles = new HashSet<String>();
             String path = null;
             try {
@@ -241,6 +244,11 @@ public class TxtFileWriter extends Writer {
                     fileSuffix = UUID.randomUUID().toString().replace('-', '_');
                     fullFileName = String.format("%s__%s", filePrefix,
                             fileSuffix);
+                }
+                if("csv".equals(fileFormat)){
+                    fullFileName+=".csv";
+                }else {
+                    fullFileName+=".txt";
                 }
                 allFiles.add(fullFileName);
 

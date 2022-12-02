@@ -53,8 +53,8 @@ public class HdfsWriter extends Writer {
             this.defaultFS = this.writerSliceConfig.getNecessaryValue(Key.DEFAULT_FS, HdfsWriterErrorCode.REQUIRED_VALUE);
             //fileType check
             this.fileType = this.writerSliceConfig.getNecessaryValue(Key.FILE_TYPE, HdfsWriterErrorCode.REQUIRED_VALUE);
-            if( !fileType.equalsIgnoreCase("ORC") && !fileType.equalsIgnoreCase("TEXT")){
-                String message = "HdfsWriter插件目前只支持ORC和TEXT两种格式的文件,请将filetype选项的值配置为ORC或者TEXT";
+            if( !fileType.equalsIgnoreCase("ORC") && !fileType.equalsIgnoreCase("TEXT") && !fileType.equalsIgnoreCase("PAR")){
+                String message = "HdfsWriter插件目前只支持ORC和TEXT和PARQUET三种格式的文件,请将filetype选项的值配置为ORC或者TEXT或者PARQUET";
                 throw DataXException.asDataXException(HdfsWriterErrorCode.ILLEGAL_VALUE, message);
             }
             //path
@@ -128,6 +128,19 @@ public class HdfsWriter extends Writer {
                     }
                 }
 
+            }else if(fileType.equalsIgnoreCase("PAR")){
+                Set<String> parquetSupportedCompress = Sets.newHashSet("NONE", "SNAPPY");
+                if(null == compress){
+                    this.writerSliceConfig.set(Key.COMPRESS, "NONE");
+                }else {
+                    compress = compress.toUpperCase().trim();
+                    if(!parquetSupportedCompress.contains(compress)){
+                        throw DataXException.asDataXException(HdfsWriterErrorCode.ILLEGAL_VALUE,
+                                String.format("目前SNAPPY FILE仅支持SNAPPY压缩, 不支持您配置的 compress 模式 : [%s]",
+                                        compress));
+                    }
+                }
+
             }
             //Kerberos check
             Boolean haveKerberos = this.writerSliceConfig.getBool(Key.HAVE_KERBEROS, false);
@@ -186,8 +199,10 @@ public class HdfsWriter extends Writer {
                     hdfsHelper.deleteFiles(existFilePaths);
                 }
             }else{
-                throw DataXException.asDataXException(HdfsWriterErrorCode.ILLEGAL_VALUE,
-                        String.format("您配置的path: [%s] 不存在, 请先在hive端创建对应的数据库和表.", path));
+//                throw DataXException.asDataXException(HdfsWriterErrorCode.ILLEGAL_VALUE,
+//                        String.format("您配置的path: [%s] 不存在, 请先在hive端创建对应的数据库和表.", path));
+                LOG.info(String.format("您配置的路径: [%s] 不存在,自动为您创建此路径并赋权",path));
+                hdfsHelper.createPath(path);
             }
         }
 
@@ -258,6 +273,7 @@ public class HdfsWriter extends Writer {
                 LOG.info(String.format("splited write file name:[%s]",
                         fullFileName));
 
+//                hdfsHelper.changePermission(String.format("%s%s__%s", storePath, filePrefix, fileSuffix));
                 writerSplitConfigs.add(splitedTaskConfig);
             }
             LOG.info("end do split.");
@@ -388,14 +404,14 @@ public class HdfsWriter extends Writer {
         @Override
         public void init() {
             this.writerSliceConfig = this.getPluginJobConf();
-
             this.defaultFS = this.writerSliceConfig.getString(Key.DEFAULT_FS);
             this.fileType = this.writerSliceConfig.getString(Key.FILE_TYPE);
             //得当的已经是绝对路径，eg：hdfs://10.101.204.12:9000/user/hive/warehouse/writer.db/text/test.textfile
             this.fileName = this.writerSliceConfig.getString(Key.FILE_NAME);
-
             hdfsHelper = new HdfsHelper();
             hdfsHelper.getFileSystem(defaultFS, writerSliceConfig);
+
+
         }
 
         @Override
@@ -414,6 +430,10 @@ public class HdfsWriter extends Writer {
             }else if(fileType.equalsIgnoreCase("ORC")){
                 //写ORC FILE
                 hdfsHelper.orcFileStartWrite(lineReceiver,this.writerSliceConfig, this.fileName,
+                        this.getTaskPluginCollector());
+            }else if(fileType.equalsIgnoreCase("PAR")){
+                //写PARQUET FILE
+                hdfsHelper.parquetFileStartWrite(lineReceiver,this.writerSliceConfig, this.fileName,
                         this.getTaskPluginCollector());
             }
 

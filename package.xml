@@ -32,6 +32,29 @@
             </includes>
             <outputDirectory>datax</outputDirectory>
         </fileSet>
+
+        <fileSet>
+            <directory>elasticsearchreader/target/datax/</directory>
+            <includes>
+                <include>**/*.*</include>
+            </includes>
+            <outputDirectory>datax</outputDirectory>
+        </fileSet>
+
+        <fileSet>
+            <directory>impalareader/target/datax/</directory>
+            <includes>
+                <include>**/*.*</include>
+            </includes>
+            <outputDirectory>datax</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>clickhousereader/target/datax/</directory>
+            <includes>
+                <include>**/*.*</include>
+            </includes>
+            <outputDirectory>datax</outputDirectory>
+        </fileSet>
         <fileSet>
             <directory>oceanbasev10reader/target/datax/</directory>
             <includes>
@@ -55,6 +78,13 @@
         </fileSet>
         <fileSet>
             <directory>sqlserverreader/target/datax/</directory>
+            <includes>
+                <include>**/*.*</include>
+            </includes>
+            <outputDirectory>datax</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>db2reader/target/datax/</directory>
             <includes>
                 <include>**/*.*</include>
             </includes>
@@ -96,13 +126,13 @@
             </includes>
             <outputDirectory>datax</outputDirectory>
         </fileSet>
-        <fileSet>
-            <directory>otsstreamreader/target/datax/</directory>
-            <includes>
-                <include>**/*.*</include>
-            </includes>
-            <outputDirectory>datax</outputDirectory>
-        </fileSet>
+		<fileSet>
+             <directory>otsstreamreader/target/datax/</directory>
+             <includes>
+                 <include>**/*.*</include>
+             </includes>
+             <outputDirectory>datax</outputDirectory>
+         </fileSet>
         <fileSet>
             <directory>txtfilereader/target/datax/</directory>
             <includes>
@@ -152,20 +182,21 @@
             </includes>
             <outputDirectory>datax</outputDirectory>
         </fileSet>
-        <fileSet>
-            <directory>hbase11xreader/target/datax/</directory>
-            <includes>
-                <include>**/*.*</include>
-            </includes>
-            <outputDirectory>datax</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>hbase094xreader/target/datax/</directory>
-            <includes>
-                <include>**/*.*</include>
-            </includes>
-            <outputDirectory>datax</outputDirectory>
-        </fileSet>
+
+<!--        <fileSet>-->
+<!--            <directory>hbase11xreader/target/datax/</directory>-->
+<!--            <includes>-->
+<!--                <include>**/*.*</include>-->
+<!--            </includes>-->
+<!--            <outputDirectory>datax</outputDirectory>-->
+<!--        </fileSet>-->
+<!--        <fileSet>-->
+<!--            <directory>hbase094xreader/target/datax/</directory>-->
+<!--            <includes>-->
+<!--                <include>**/*.*</include>-->
+<!--            </includes>-->
+<!--            <outputDirectory>datax</outputDirectory>-->
+<!--        </fileSet>-->
         <fileSet>
             <directory>opentsdbreader/target/datax/</directory>
             <includes>
@@ -187,43 +218,22 @@
             </includes>
             <outputDirectory>datax</outputDirectory>
         </fileSet>
-        <fileSet>
-            <directory>hbase11xsqlreader/target/datax/</directory>
-            <includes>
-                <include>**/*.*</include>
-            </includes>
-            <outputDirectory>datax</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>hbase20xsqlreader/target/datax/</directory>
-            <includes>
-                <include>**/*.*</include>
-            </includes>
-            <outputDirectory>datax</outputDirectory>
-        </fileSet>
+<!--        <fileSet>-->
+<!--            <directory>hbase11xsqlreader/target/datax/</directory>-->
+<!--            <includes>-->
+<!--                <include>**/*.*</include>-->
+<!--            </includes>-->
+<!--            <outputDirectory>datax</outputDirectory>-->
+<!--        </fileSet>-->
+<!--        <fileSet>-->
+<!--            <directory>hbase20xsqlreader/target/datax/</directory>-->
+<!--            <includes>-->
+<!--                <include>**/*.*</include>-->
+<!--            </includes>-->
+<!--            <outputDirectory>datax</outputDirectory>-->
+<!--        </fileSet>-->
         <fileSet>
             <directory>tsdbreader/target/datax/</directory>
-            <includes>
-                <include>**/*.*</include>
-            </includes>
-            <outputDirectory>datax</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>datahubreader/target/datax/</directory>
-            <includes>
-                <include>**/*.*</include>
-            </includes>
-            <outputDirectory>datax</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>loghubreader/target/datax/</directory>
-            <includes>
-                <include>**/*.*</include>
-            </includes>
-            <outputDirectory>datax</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>starrocksreader/target/datax/</directory>
             <includes>
                 <include>**/*.*</include>
             </includes>
@@ -261,13 +271,6 @@
         </fileSet>
         <fileSet>
             <directory>odpswriter/target/datax/</directory>
-            <includes>
-                <include>**/*.*</include>
-            </includes>
-            <outputDirectory>datax</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>doriswriter/target/datax/</directory>
             <includes>
                 <include>**/*.*</include>
             </includes>
@@ -343,8 +346,26 @@
             </includes>
             <outputDirectory>datax</outputDirectory>
         </fileSet>
+
+        <fileSet>
+            <directory>greenplumwriter/target/datax/</directory>
+            <includes>
+                <include>**/*.*</include>
+            </includes>
+            <outputDirectory>datax</outputDirectory>
+        </fileSet>
+
+
         <fileSet>
             <directory>kingbaseeswriter/target/datax/</directory>
+            <includes>
+                <include>**/*.*</include>
+            </includes>
+            <outputDirectory>datax</outputDirectory>
+        </fileSet>
+
+        <fileSet>
+            <directory>doriswriter/target/datax/</directory>
             <includes>
                 <include>**/*.*</include>
             </includes>
@@ -371,27 +392,27 @@
             </includes>
             <outputDirectory>datax</outputDirectory>
         </fileSet>
-        <fileSet>
-            <directory>hbase11xwriter/target/datax/</directory>
-            <includes>
-                <include>**/*.*</include>
-            </includes>
-            <outputDirectory>datax</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>hbase094xwriter/target/datax/</directory>
-            <includes>
-                <include>**/*.*</include>
-            </includes>
-            <outputDirectory>datax</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>hbase11xsqlwriter/target/datax/</directory>
-            <includes>
-                <include>**/*.*</include>
-            </includes>
-            <outputDirectory>datax</outputDirectory>
-        </fileSet>
+<!--        <fileSet>-->
+<!--            <directory>hbase11xwriter/target/datax/</directory>-->
+<!--            <includes>-->
+<!--                <include>**/*.*</include>-->
+<!--            </includes>-->
+<!--            <outputDirectory>datax</outputDirectory>-->
+<!--        </fileSet>-->
+<!--        <fileSet>-->
+<!--            <directory>hbase094xwriter/target/datax/</directory>-->
+<!--            <includes>-->
+<!--                <include>**/*.*</include>-->
+<!--            </includes>-->
+<!--            <outputDirectory>datax</outputDirectory>-->
+<!--        </fileSet>-->
+<!--        <fileSet>-->
+<!--            <directory>hbase11xsqlwriter/target/datax/</directory>-->
+<!--            <includes>-->
+<!--                <include>**/*.*</include>-->
+<!--            </includes>-->
+<!--            <outputDirectory>datax</outputDirectory>-->
+<!--        </fileSet>-->
         <fileSet>
             <directory>elasticsearchwriter/target/datax/</directory>
             <includes>
@@ -399,13 +420,13 @@
             </includes>
             <outputDirectory>datax</outputDirectory>
         </fileSet>
-        <fileSet>
-            <directory>hbase20xsqlwriter/target/datax/</directory>
-            <includes>
-                <include>**/*.*</include>
-            </includes>
-            <outputDirectory>datax</outputDirectory>
-        </fileSet>
+<!--        <fileSet>-->
+<!--            <directory>hbase20xsqlwriter/target/datax/</directory>-->
+<!--            <includes>-->
+<!--                <include>**/*.*</include>-->
+<!--            </includes>-->
+<!--            <outputDirectory>datax</outputDirectory>-->
+<!--        </fileSet>-->
         <fileSet>
             <directory>tsdbwriter/target/datax/</directory>
             <includes>
@@ -464,20 +485,6 @@
         </fileSet>
         <fileSet>
             <directory>hologresjdbcwriter/target/datax/</directory>
-            <includes>
-                <include>**/*.*</include>
-            </includes>
-            <outputDirectory>datax</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>datahubwriter/target/datax/</directory>
-            <includes>
-                <include>**/*.*</include>
-            </includes>
-            <outputDirectory>datax</outputDirectory>
-        </fileSet>
-        <fileSet>
-            <directory>loghubwriter/target/datax/</directory>
             <includes>
                 <include>**/*.*</include>
             </includes>

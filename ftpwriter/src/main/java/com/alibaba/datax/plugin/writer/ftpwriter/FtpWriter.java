@@ -116,6 +116,7 @@ public class FtpWriter extends Writer {
             String writeMode = this.writerSliceConfig
                     .getString(com.alibaba.datax.plugin.unstructuredstorage.writer.Key.WRITE_MODE);
 
+            fileName = fileName.replaceAll("\\\\","");
             Set<String> allFileExists = this.ftpHelper.getAllFilesInDir(path,
                     fileName);
             this.allFileExists = allFileExists;
@@ -263,6 +264,8 @@ public class FtpWriter extends Writer {
             LOG.info("begin do write...");
             String fileFullPath = UnstructuredStorageWriterUtil.buildFilePath(
                     this.path, this.fileName, this.suffix);
+
+//            fileFullPath = fileFullPath.replaceAll("\\\\","");
             LOG.info(String.format("write to file : [%s]", fileFullPath));
 
             OutputStream outputStream = null;

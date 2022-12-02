@@ -15,12 +15,17 @@ import org.apache.commons.lang3.StringUtils;
 import org.apache.commons.lang3.Validate;
 import org.apache.commons.lang3.tuple.MutablePair;
 import org.apache.hadoop.fs.*;
+import org.apache.hadoop.fs.permission.FsAction;
+import org.apache.hadoop.fs.permission.FsPermission;
 import org.apache.hadoop.hive.ql.io.orc.OrcOutputFormat;
 import org.apache.hadoop.hive.ql.io.orc.OrcSerde;
+import org.apache.hadoop.hive.ql.io.parquet.MapredParquetOutputFormat;
+import org.apache.hadoop.hive.ql.io.parquet.serde.ParquetHiveSerDe;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspector;
 import org.apache.hadoop.hive.serde2.objectinspector.ObjectInspectorFactory;
 import org.apache.hadoop.hive.serde2.objectinspector.StructObjectInspector;
 import org.apache.hadoop.io.NullWritable;
+import org.apache.hadoop.io.ObjectWritable;
 import org.apache.hadoop.io.Text;
 import org.apache.hadoop.io.compress.CompressionCodec;
 import org.apache.hadoop.mapred.*;
@@ -49,14 +54,21 @@ public  class HdfsHelper {
     private String  kerberosPrincipal;
 
     public void getFileSystem(String defaultFS, Configuration taskConfig){
-        hadoopConf = new org.apache.hadoop.conf.Configuration();
 
         Configuration hadoopSiteParams = taskConfig.getConfiguration(Key.HADOOP_CONFIG);
         JSONObject hadoopSiteParamsAsJsonObject = JSON.parseObject(taskConfig.getString(Key.HADOOP_CONFIG));
+
+        if(hadoopSiteParams!=null&&!Objects.isNull(hadoopSiteParamsAsJsonObject.getString("dfs.username"))){
+            System.setProperty("HADOOP_USER_NAME",hadoopSiteParamsAsJsonObject.getString("dfs.username"));
+        }
+        hadoopConf = new org.apache.hadoop.conf.Configuration();
+
         if (null != hadoopSiteParams) {
             Set<String> paramKeys = hadoopSiteParams.getKeys();
             for (String each : paramKeys) {
-                hadoopConf.set(each, hadoopSiteParamsAsJsonObject.getString(each));
+                if(!"dfs.username".equals(each)){
+                    hadoopConf.set(each, hadoopSiteParamsAsJsonObject.getString(each));
+                }
             }
         }
         hadoopConf.set(HDFS_DEFAULTFS_KEY, defaultFS);
@@ -222,6 +234,7 @@ public  class HdfsHelper {
                 for (Iterator it1=tmpFiles.iterator(),it2=endFiles.iterator();it1.hasNext()&&it2.hasNext();){
                     String srcFile = it1.next().toString();
                     String dstFile = it2.next().toString();
+                    dstFile = dstFile.replace("\\","/");
                     Path srcFilePah = new Path(srcFile);
                     Path dstFilePah = new Path(dstFile);
                     if(tmpFilesParent == null){
@@ -349,7 +362,10 @@ public  class HdfsHelper {
             codecClass = org.apache.hadoop.io.compress.BZip2Codec.class;
         }else if("SNAPPY".equalsIgnoreCase(compress)){
             //todo 等需求明确后支持 需要用户安装SnappyCodec
-            codecClass = org.apache.hadoop.io.compress.SnappyCodec.class;
+//            codecClass = org.apache.hadoop.io.compress.SnappyCodec.class;
+            //修改
+            codecClass = parquet.hadoop.codec.SnappyCodec.class;
+
             // org.apache.hadoop.hive.ql.io.orc.ZlibCodec.class  not public
             //codecClass = org.apache.hadoop.hive.ql.io.orc.ZlibCodec.class;
         }else {
@@ -468,6 +484,54 @@ public  class HdfsHelper {
         }
         return columnTypeInspectors;
     }
+
+
+    /**
+     * 在hdfs上创建目录
+     *
+     * @param filePath 需要创建的目录
+     * @return boolean
+     */
+    public boolean createPath(String filePath) {
+        Path path = new Path(filePath);
+        boolean exist = false;
+        try {
+            if (fileSystem.exists(path)) {
+                String message = String.format("文件路径[%s]已存在，无需创建！",
+                        "message:filePath =" + filePath);
+                LOG.info(message);
+                exist = true;
+            } else {
+                exist = fileSystem.mkdirs(path);
+            }
+
+//            LOG.info(String.format("对路径进行赋权: [%s]",path));
+//            FsPermission permission = new FsPermission(FsAction.ALL,FsAction.ALL,FsAction.ALL);
+//            fileSystem.setPermission(path, permission);
+
+        } catch (IOException e) {
+            String message = String.format("创建文件路径或赋权[%s]时发生网络IO异常,请检查您的网络是否正常！",
+                    "message:filePath =" + filePath);
+            LOG.error(message);
+            throw DataXException.asDataXException(HdfsWriterErrorCode.CONNECT_HDFS_IO_ERROR, e);
+        }
+        return exist;
+    }
+    public void changePermission(String filePath) {
+        Path path = new Path(filePath);
+        try {
+            LOG.info(String.format("对路径进行赋权: [%s]",path));
+            FsPermission permission = new FsPermission(FsAction.ALL,FsAction.ALL,FsAction.ALL);
+            fileSystem.setPermission(path, permission);
+        } catch (IOException e) {
+            String message = String.format("赋权[%s]时发生异常,请检查！",
+                    "message:filePath =" + filePath);
+            LOG.error(message);
+            throw DataXException.asDataXException(HdfsWriterErrorCode.CONNECT_HDFS_IO_ERROR, e);
+        }
+    }
+
+
 
     public OrcSerde getOrcSerde(Configuration config){
         String fieldDelimiter = config.getString(Key.FIELD_DELIMITER);
@@ -625,5 +689,48 @@ public  class HdfsHelper {
             }
         }
         return typeBuilder.named("m").toString();
+    }
+
+
+    public void parquetFileStartWrite(RecordReceiver lineReceiver, Configuration config, String fileName,
+                                      TaskPluginCollector taskPluginCollector) {
+        List<Configuration> columns = config.getListConfiguration(Key.COLUMN);
+        String compress = config.getString(Key.COMPRESS, null);
+        List<String> columnNames = getColumnNames(columns);
+        List<ObjectInspector> columnTypeInspectors = getColumnTypeInspectors(columns);
+        StructObjectInspector inspector = (StructObjectInspector) ObjectInspectorFactory
+                .getStandardStructObjectInspector(columnNames, columnTypeInspectors);
+
+        ParquetHiveSerDe parquetHiveSerDe = new ParquetHiveSerDe();
+
+        MapredParquetOutputFormat outFormat = new MapredParquetOutputFormat();
+        if (!"NONE".equalsIgnoreCase(compress) && null != compress) {
+            Class<? extends CompressionCodec> codecClass = getCompressCodec(compress);
+            if (null != codecClass) {
+                outFormat.setOutputCompressorClass(conf, codecClass);
+            }
+        }
+        try {
+            Properties colProperties = new Properties();
+            colProperties.setProperty("columns", String.join(",", columnNames));
+            List<String> colType = Lists.newArrayList();
+            columns.forEach(c -> colType.add(c.getString(Key.TYPE).toLowerCase()));
+            colProperties.setProperty("columns.types", String.join(",", colType));
+            RecordWriter writer = (RecordWriter) outFormat.getHiveRecordWriter(conf, new Path(fileName), ObjectWritable.class, true, colProperties, Reporter.NULL);
+            Record record = null;
+            while ((record = lineReceiver.getFromReader()) != null) {
+                MutablePair<List<Object>, Boolean> transportResult = transportOneRecord(record, columns, taskPluginCollector);
+                if (!transportResult.getRight()) {
+                    writer.write(null, parquetHiveSerDe.serialize(transportResult.getLeft(), inspector));
+                }
+            }
+            writer.close(Reporter.NULL);
+        } catch (Exception e) {
+            String message = String.format("写文件文件[%s]时发生IO异常,请检查您的网络是否正常！", fileName);
+            LOG.error(message);
+            Path path = new Path(fileName);
+            deleteDir(path.getParent());
+            throw DataXException.asDataXException(HdfsWriterErrorCode.Write_FILE_IO_ERROR, e);
+        }
     }
 }

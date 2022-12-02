@@ -22,8 +22,8 @@ public enum DataBaseType {
     ClickHouse("clickhouse", "ru.yandex.clickhouse.ClickHouseDriver"),
     KingbaseES("kingbasees", "com.kingbase8.Driver"),
     Oscar("oscar", "com.oscar.Driver"),
-    OceanBase("oceanbase", "com.alipay.oceanbase.jdbc.Driver"),
-    StarRocks("starrocks", "com.mysql.jdbc.Driver");
+    Impala("impala", "org.apache.hive.jdbc.HiveDriver"),
+    OceanBase("oceanbase", "com.alipay.oceanbase.jdbc.Driver");
 
 
     private String typeName;
@@ -56,6 +56,8 @@ public enum DataBaseType {
                 break;
             case SQLServer:
                 break;
+            case Impala:
+                break;
             case DB2:
                 break;
             case PostgreSQL:
@@ -67,8 +69,6 @@ public enum DataBaseType {
             case KingbaseES:
                 break;
             case Oscar:
-                break;
-            case StarRocks:
                 break;
             default:
                 throw DataXException.asDataXException(DBUtilErrorCode.UNSUPPORTED_TYPE, "unsupported database type.");

@@ -30,13 +30,15 @@ public class TransformerRegistry {
          * add native transformer
          * local storage and from server will be delay load.
          */
-
         registTransformer(new SubstrTransformer());
         registTransformer(new PadTransformer());
         registTransformer(new ReplaceTransformer());
         registTransformer(new FilterTransformer());
         registTransformer(new GroovyTransformer());
-        registTransformer(new DigestTransformer());
+        registTransformer(new MD5Transformer());
+        registTransformer(new AESTransformer());
+        registTransformer(new SM3Transformer());
+        registTransformer(new SM4Transformer());
     }
 
     public static void loadTransformerFromLocalStorage() {
