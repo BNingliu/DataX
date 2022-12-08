@@ -1,5 +1,6 @@
 package com.alibaba.datax.plugin.reader.oceanbasev10reader.ext;
 
+import java.util.Arrays;
 import java.util.List;
 
 import com.alibaba.datax.common.constant.CommonConstant;
@@ -26,7 +27,7 @@ public class ReaderJob extends CommonRdbmsReader.Job {
     public void init(Configuration originalConfig) {
         //将config中的column和table中的关键字进行转义
         List<String> columns = originalConfig.getList(Key.COLUMN, String.class);
-        ObReaderUtils.escapeDatabaseKeyword(columns);
+        ObReaderUtils.escapeDatabaseKeywords(columns);
         originalConfig.set(Key.COLUMN, columns);
 
         List<JSONObject> conns = originalConfig.getList(Constant.CONN_MARK, JSONObject.class);
@@ -37,7 +38,7 @@ public class ReaderJob extends CommonRdbmsReader.Job {
 
             // tables will be null when querySql is configured
             if (tables != null) {
-                ObReaderUtils.escapeDatabaseKeyword(tables);
+                ObReaderUtils.escapeDatabaseKeywords(tables);
                 originalConfig.set(String.format("%s[%d].%s", Constant.CONN_MARK, i, Key.TABLE),
                     tables);
             }
@@ -78,8 +79,7 @@ public class ReaderJob extends CommonRdbmsReader.Job {
         final String obJdbcDelimiter = com.alibaba.datax.plugin.rdbms.writer.Constant.OB10_SPLIT_STRING;
         if (jdbcUrl.startsWith(obJdbcDelimiter)) {
             String[] ss = jdbcUrl.split(obJdbcDelimiter);
-            int elementCount = 2;
-            if (ss.length >= elementCount) {
+            if (ss.length >= 2) {
                 String tenant = ss[1].trim();
                 String[] sss = tenant.split(":");
                 return sss[0];

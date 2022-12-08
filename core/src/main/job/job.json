@@ -2,7 +2,7 @@
     "job": {
         "setting": {
             "speed": {
-                "channel":1
+                "byte":10485760
             },
             "errorLimit": {
                 "record": 0,

@@ -1,6 +1,6 @@
 {
-  "name": "hologresjdbcwriter",
-  "class": "com.alibaba.datax.plugin.writer.hologresjdbcwriter.HologresJdbcWriter",
+  "name": "hologreswriter",
+  "class": "com.alibaba.datax.plugin.writer.hologreswriter.HologresWriter",
   "description": "",
   "developer": "alibaba"
 }

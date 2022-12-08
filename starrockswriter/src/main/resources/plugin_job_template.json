@@ -3,16 +3,12 @@
     "parameter": {
         "username": "",
         "password": "",
+        "database": "",
+        "table": "",
         "column": [],
         "preSql": [],
         "postSql": [], 
-        "loadUrl": [],
-        "connection": [
-            {
-                "jdbcUrl": "",
-                "selectedDatabase": "",
-                "table": []
-            }
-        ]
+        "jdbcUrl": "",
+        "loadUrl": []
     }
 }

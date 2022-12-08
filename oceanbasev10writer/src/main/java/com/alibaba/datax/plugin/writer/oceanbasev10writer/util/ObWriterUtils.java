@@ -25,7 +25,7 @@ public class ObWriterUtils {
 		return new HashSet(Arrays.asList(keywords.split(",")));
 	}
 
-	public static String escapeDatabaseKeyword(String keyword) {
+	public static String escapeDatabaseKeywords(String keyword) {
 		if (databaseKeywords == null) {
 			if (isOracleMode()) {
 				databaseKeywords = keywordsFromString2HashSet(ORACLE_KEYWORDS);
@@ -40,9 +40,9 @@ public class ObWriterUtils {
 		return keyword;
 	}
 
-	public static void escapeDatabaseKeyword(List<String> keywords) {
+	public static void escapeDatabaseKeywords(List<String> keywords) {
 		for (int i = 0; i < keywords.size(); i++) {
-			keywords.set(i, escapeDatabaseKeyword(keywords.get(i)));
+			keywords.set(i, escapeDatabaseKeywords(keywords.get(i)));
 		}
 	}
 	public static Boolean isEscapeMode(String keyword){
@@ -159,7 +159,7 @@ public class ObWriterUtils {
 			while (rs.next()) {
 				String keyName = rs.getString("Key_name");
 				String columnName = rs.getString("Column_name");
-				columnName= escapeDatabaseKeyword(columnName);
+				columnName=escapeDatabaseKeywords(columnName);
 				if(!ObWriterUtils.isEscapeMode(columnName)){
 					columnName = columnName.toUpperCase();
 				}

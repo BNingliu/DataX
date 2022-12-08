@@ -27,6 +27,9 @@ import java.io.*;
 import java.nio.charset.UnsupportedCharsetException;
 import java.text.DateFormat;
 import java.util.*;
+import java.util.regex.Matcher;
+import java.util.regex.Pattern;
+import java.util.stream.Collectors;
 
 public class UnstructuredStorageReaderUtil {
 	private static final Logger LOG = LoggerFactory
@@ -232,6 +235,7 @@ public class UnstructuredStorageReaderUtil {
 		}
 
 	}
+	private static Pattern pattern = Pattern.compile("(\\w+)=(\\w.*?)(?=/)");
 
 	public static void doReadFromStream(BufferedReader reader, String context,
 										Configuration readerSliceConfig, RecordSender recordSender,
@@ -280,11 +284,18 @@ public class UnstructuredStorageReaderUtil {
 
 			setCsvReaderConfig(csvReader);
 
+			Matcher partition = pattern.matcher(context);
+
 			String[] parseRows;
+			List<String> list =null;
 			while ((parseRows = UnstructuredStorageReaderUtil
 					.splitBufferedReader(csvReader)) != null) {
+				list = Arrays.stream(parseRows).collect(Collectors.toList());;
+				while(partition.find()){
+					list.add(partition.group(2));
+				}
 				UnstructuredStorageReaderUtil.transportOneRecord(recordSender,
-						column, parseRows, nullFormat, taskPluginCollector);
+						column, list.toArray(new String[list.size()]), nullFormat, taskPluginCollector);
 			}
 		} catch (UnsupportedEncodingException uee) {
 			throw DataXException

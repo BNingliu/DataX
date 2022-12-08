@@ -11,6 +11,9 @@ public class ColumnEntry {
     private Integer index;
     private String type;
     private String value;
+
+    private String partitionName;
+
     private String format;
     private DateFormat dateParse;
 
@@ -59,5 +62,13 @@ public class ColumnEntry {
 
     public static String toJSONString(ColumnEntry columnEntry) {
         return JSON.toJSONString(columnEntry);
+    }
+
+    public String getPartitionName() {
+        return partitionName;
+    }
+
+    public void setPartitionName(String partitionName) {
+        this.partitionName = partitionName;
     }
 }

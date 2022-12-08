@@ -93,7 +93,7 @@ public class TDengineReader extends Reader {
             }
             if (start >= end)
                 throw DataXException.asDataXException(TDengineReaderErrorCode.ILLEGAL_VALUE,
-                        "The parameter [" + Key.BEGIN_DATETIME + "] should be less than the parameter [" + Key.END_DATETIME + "].");
+                        "The parameter " + Key.BEGIN_DATETIME + ": " + beginDatetime + " should be less than the parameter " + Key.END_DATETIME + ": " + endDatetime + ".");
 
         }
 
@@ -119,7 +119,6 @@ public class TDengineReader extends Reader {
                 }
             }
 
-            LOG.info("Configuration: {}", configurations);
             return configurations;
         }
     }

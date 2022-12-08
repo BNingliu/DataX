@@ -79,9 +79,7 @@ public class StarRocksWriterManager {
             batchSize += bts.length;
             if (batchCount >= writerOptions.getBatchRows() || batchSize >= writerOptions.getBatchSize()) {
                 String label = createBatchLabel();
-                if (LOG.isDebugEnabled()) {
-                    LOG.debug(String.format("StarRocks buffer Sinking triggered: rows[%d] label[%s].", batchCount, label));
-                }
+                LOG.debug(String.format("StarRocks buffer Sinking triggered: rows[%d] label[%s].", batchCount, label));
                 flush(label, false);
             }
         } catch (Exception e) {
@@ -112,11 +110,7 @@ public class StarRocksWriterManager {
             closed = true;            
             try {
                 String label = createBatchLabel();
-                if (batchCount > 0) {
-                    if (LOG.isDebugEnabled()) {
-                        LOG.debug(String.format("StarRocks Sink is about to close: label[%s].", label));
-                    }
-                }
+                if (batchCount > 0) LOG.debug(String.format("StarRocks Sink is about to close: label[%s].", label));
                 flush(label, true);
             } catch (Exception e) {
                 throw new RuntimeException("Writing records to StarRocks failed.", e);
@@ -145,7 +139,7 @@ public class StarRocksWriterManager {
                         flushException = e;
                     }
                 }
-            }   
+            }
         });
         flushThread.setDaemon(true);
         flushThread.start();
@@ -165,9 +159,7 @@ public class StarRocksWriterManager {
             return;
         }
         stopScheduler();
-        if (LOG.isDebugEnabled()) {
-            LOG.debug(String.format("Async stream load: rows[%d] bytes[%d] label[%s].", flushData.getRows().size(), flushData.getBytes(), flushData.getLabel()));
-        }
+        LOG.debug(String.format("Async stream load: rows[%d] bytes[%d] label[%s].", flushData.getRows().size(), flushData.getBytes(), flushData.getLabel()));
         for (int i = 0; i <= writerOptions.getMaxRetries(); i++) {
             try {
                 // flush to StarRocks with stream load
