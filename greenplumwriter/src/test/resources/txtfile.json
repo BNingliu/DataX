@@ -1,0 +1,62 @@
+{
+  "setting": {},
+  "job": {
+    "setting": {
+      "speed": {
+        "channel": 2
+      }
+    },
+    "content": [
+      {
+        "reader": {
+          "name": "txtfilereader",
+          "parameter": {
+            "path": [
+              "/data/jgb.20221204.410000.0000.dat.gz"
+            ],
+            "compress":"gzip",
+            "encoding": "GBK",
+            "cibType":"0",
+            "column":[
+              {
+                "index":"0",
+                "CIBIndex":"1,2",
+                "type":"String"
+              },
+              {
+                "index":"1",
+                "CIBIndex":"3,5",
+                "type":"String"
+              },
+              {
+                "index":"2",
+                "CIBIndex":"6,6",
+                "type":"String"
+              },
+              {
+                "index":"3",
+                "CIBIndex":"7,7",
+                "type":"String"
+              },
+              {
+                "index":"4",
+                "CIBIndex":"8,67",
+                "type":"String"
+              }
+            ],
+            "fieldDelimiter":"\u0018"
+          }
+        },
+        "writer": {
+          "name": "txtfilewriter",
+          "parameter": {
+            "path": "/data/result",
+            "fileName": "luohw",
+            "writeMode": "truncate",
+            "format": "yyyy-MM-dd"
+          }
+        }
+      }
+    ]
+  }
+}

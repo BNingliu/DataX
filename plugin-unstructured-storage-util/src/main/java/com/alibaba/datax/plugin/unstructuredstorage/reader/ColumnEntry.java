@@ -11,11 +11,10 @@ public class ColumnEntry {
     private Integer index;
     private String type;
     private String value;
-
     private String partitionName;
-
     private String format;
     private DateFormat dateParse;
+    private String CIBIndex;
 
     public Integer getIndex() {
         return index;
@@ -70,5 +69,13 @@ public class ColumnEntry {
 
     public void setPartitionName(String partitionName) {
         this.partitionName = partitionName;
+    }
+
+    public String getCIBIndex() {
+        return CIBIndex;
+    }
+
+    public void setCIBIndex(String CIBIndex) {
+        this.CIBIndex = CIBIndex;
     }
 }

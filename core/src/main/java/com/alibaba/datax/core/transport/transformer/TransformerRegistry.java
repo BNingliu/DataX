@@ -39,6 +39,8 @@ public class TransformerRegistry {
         registTransformer(new AESTransformer());
         registTransformer(new SM3Transformer());
         registTransformer(new SM4Transformer());
+        registTransformer(new WrapTransformer());
+
     }
 
     public static void loadTransformerFromLocalStorage() {

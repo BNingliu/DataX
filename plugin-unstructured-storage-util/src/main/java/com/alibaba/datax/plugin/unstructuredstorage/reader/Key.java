@@ -10,6 +10,8 @@ public class Key {
 
 	public static final String FIELD_DELIMITER = "fieldDelimiter";
 
+	public static final String CIB_TYPE = "cibType";
+
 	public static final String SKIP_HEADER = "skipHeader";
 
 	public static final String TYPE = "type";
