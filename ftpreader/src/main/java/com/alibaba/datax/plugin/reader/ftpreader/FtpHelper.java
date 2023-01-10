@@ -18,7 +18,14 @@ public abstract class FtpHelper {
 	* @return void 
 	* @throws
 	 */
-	public abstract void loginFtpServer(String host, String username, String password, int port, int timeout,String connectMode) ;
+	public abstract void loginFtpServer(String host,
+										String username,
+										String password,
+										int port,
+										int timeout,
+										String connectMode,
+										int osType
+	) ;
 	/**
 	 * 
 	* @Title: LogoutFtpServer 

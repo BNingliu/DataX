@@ -16,7 +16,7 @@ public class Mysql2TGPTest {
 
     @Test
     public void mysql2tdengine() throws Throwable {
-        String[] params = {"-mode", "standalone", "-jobid", "-1", "-job", "src/test/resources/txtfile.json"};
+        String[] params = {"-mode", "standalone", "-jobid", "-1", "-job", "src/test/resources/qilin_ftp.json"};
         System.setProperty("datax.home", "../target/datax/datax");
         Engine.entry(params);
     }

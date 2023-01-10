@@ -33,6 +33,7 @@ public class FtpReader extends Reader {
 		private int timeout;
 		private String connectPattern;
 		private int maxTraversalLevel;
+		private int osType;
 
 		private FtpHelper ftpHelper = null;
 
@@ -52,8 +53,10 @@ public class FtpReader extends Reader {
 				// ftp 协议
 				this.port = originConfig.getInt(Key.PORT, Constant.DEFAULT_FTP_PORT);
 				this.ftpHelper = new StandardFtpHelper();
-			}		
-			ftpHelper.loginFtpServer(host, username, password, port, timeout, connectPattern);
+			}
+			this.osType = originConfig.getInt(Key.OSTYPE, Constant.DEFAULT_OSTYPE);
+
+			ftpHelper.loginFtpServer(host, username, password, port, timeout, connectPattern,osType);
 
 		}
 
@@ -178,6 +181,7 @@ public class FtpReader extends Reader {
 		private String protocol;
 		private int timeout;
 		private String connectPattern;
+		private int osType;
 
 		private Configuration readerSliceConfig;
 		private List<String> sourceFiles;
@@ -205,8 +209,9 @@ public class FtpReader extends Reader {
 				this.port = readerSliceConfig.getInt(Key.PORT, Constant.DEFAULT_FTP_PORT);
 				this.connectPattern = readerSliceConfig.getString(Key.CONNECTPATTERN, Constant.DEFAULT_FTP_CONNECT_PATTERN);// 默认为被动模式
 				this.ftpHelper = new StandardFtpHelper();
-			}	
-			ftpHelper.loginFtpServer(host, username, password, port, timeout, connectPattern);
+			}
+			this.osType = readerSliceConfig.getInt(Key.OSTYPE, Constant.DEFAULT_OSTYPE);
+			ftpHelper.loginFtpServer(host, username, password, port, timeout, connectPattern,osType);
 
 		}
 

@@ -22,8 +22,15 @@ public class StandardFtpHelper extends FtpHelper {
 	FTPClient ftpClient = null;
 
 	@Override
-	public void loginFtpServer(String host, String username, String password, int port, int timeout,
-			String connectMode) {
+	public void loginFtpServer(
+			String host,
+			String username,
+			String password,
+			int port,
+			int timeout,
+			String connectMode,
+			int osType
+	) {
 		ftpClient = new FTPClient();
 		try {
 			// 连接
@@ -32,6 +39,13 @@ public class StandardFtpHelper extends FtpHelper {
 			ftpClient.login(username, password);
 			// 不需要写死ftp server的OS TYPE,FTPClient getSystemType()方法会自动识别
 			// ftpClient.configure(new FTPClientConfig(FTPClientConfig.SYST_UNIX));
+
+			//麒麟系统
+			if(osType==Constant.KylinOS){
+				FTPClientConfig conf = new FTPClientConfig(FTPClientConfig.SYST_NT);
+				ftpClient.configure(conf);
+			}
+
 			ftpClient.setConnectTimeout(timeout);
 			ftpClient.setDataTimeout(timeout);
 			if ("PASV".equals(connectMode)) {

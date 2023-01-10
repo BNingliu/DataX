@@ -14,18 +14,18 @@
         "reader":{
           "parameter":{
             "path":[
-              "/home/qdata/ftp_file/jgb.20221204.410000.0000.dat.gz"
+              "/home/qdata/ftp_file/新签约客户.xlsx"
             ],
             "protocol":"ftp",
             "password":"ytdinfo123",
-            "compress":"gzip",
+            "compress":"xlsx",
             "port":"21",
             "column":[
               "*"
             ],
             "host":"192.168.2.131",
             "skipHeader":"false",
-            "encoding":"GBK",
+            "encoding":"UTF-8",
             "fieldDelimiter":"\u0020",
             "username":"ftptest",
             "connectPattern":"PORT"
