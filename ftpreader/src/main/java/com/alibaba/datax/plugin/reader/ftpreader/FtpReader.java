@@ -242,10 +242,8 @@ public class FtpReader extends Reader {
 			LOG.debug("start read source files...");
 			for (String fileName : this.sourceFiles) {
 				LOG.info(String.format("reading file : [%s]", fileName));
-				InputStream inputStream = null;
-				
-				inputStream = ftpHelper.getInputStream(fileName);
-	
+				InputStream inputStream = ftpHelper.getInputStream(fileName);
+
 				UnstructuredStorageReaderUtil.readFromStream(inputStream, fileName, this.readerSliceConfig,
 						recordSender, this.getTaskPluginCollector());
 				recordSender.flush();

@@ -88,7 +88,9 @@ public class StandardFtpHelper extends FtpHelper {
 		if (ftpClient.isConnected()) {
 			try {
 				//todo ftpClient.completePendingCommand();//打开流操作之后必须，原因还需要深究
-				ftpClient.logout();
+				if(ftpClient.isConnected()){
+					ftpClient.logout();
+				}
 			} catch (IOException e) {
 				String message = "与ftp服务器断开连接失败";
 				LOG.error(message);
@@ -232,7 +234,7 @@ public class StandardFtpHelper extends FtpHelper {
 	@Override
 	public InputStream getInputStream(String filePath) {
 		try {
-			return ftpClient.retrieveFileStream(new String(filePath.getBytes(),FTP.DEFAULT_CONTROL_ENCODING));
+			return ftpClient.retrieveFileStream(new String(filePath.getBytes(), FTP.DEFAULT_CONTROL_ENCODING));
 		} catch (IOException e) {
 			String message = String.format("读取文件 : [%s] 时出错,请确认文件：[%s]存在且配置的用户有权限读取", filePath, filePath);
 			LOG.error(message);

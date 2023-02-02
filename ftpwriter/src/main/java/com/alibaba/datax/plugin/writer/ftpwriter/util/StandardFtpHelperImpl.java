@@ -83,7 +83,9 @@ public class StandardFtpHelperImpl implements IFtpHelper {
     public void logoutFtpServer() {
         if (this.ftpClient.isConnected()) {
             try {
-                this.ftpClient.logout();
+                if( this.ftpClient.isConnected()){
+                    this.ftpClient.logout();
+                }
             } catch (IOException e) {
                 String message = String.format(
                         "与ftp服务器断开连接失败, errorMessage:%s", e.getMessage());

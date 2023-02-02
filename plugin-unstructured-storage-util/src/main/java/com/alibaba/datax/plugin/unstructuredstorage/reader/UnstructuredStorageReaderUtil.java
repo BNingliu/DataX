@@ -9,10 +9,11 @@ import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
 import com.csvreader.CsvReader;
-import org.apache.commons.beanutils.BeanUtils;
 import io.airlift.compress.snappy.SnappyCodec;
 import io.airlift.compress.snappy.SnappyFramedInputStream;
-import org.anarres.lzo.*;
+import org.anarres.lzo.LzoDecompressor1x_safe;
+import org.anarres.lzo.LzoInputStream;
+import org.apache.commons.beanutils.BeanUtils;
 import org.apache.commons.compress.compressors.CompressorInputStream;
 import org.apache.commons.compress.compressors.bzip2.BZip2CompressorInputStream;
 import org.apache.commons.compress.compressors.gzip.GzipCompressorInputStream;
@@ -150,6 +151,11 @@ public class UnstructuredStorageReaderUtil {
                             inputStream);
                     reader = new BufferedReader(new InputStreamReader(
                             snappyInputStream, encoding));
+                } else if ("xlsx".equalsIgnoreCase(compress) || "xls".equalsIgnoreCase(compress)) {
+//                    InputStream snappyInputStream = new SnappyFramedInputStream(
+//                            inputStream);
+//                    reader = new BufferedReader(new InputStreamReader(
+//                            snappyInputStream, encoding));
                 }/* else if ("lzma".equalsIgnoreCase(compress)) {
 					CompressorInputStream compressorInputStream = new LZMACompressorInputStream(
 							inputStream);
@@ -208,8 +214,15 @@ public class UnstructuredStorageReaderUtil {
                                             "文件压缩格式 , 不支持您配置的文件压缩格式: [%s]", compress));
                 }
             }
-            UnstructuredStorageReaderUtil.doReadFromStream(reader, context,
-                    readerSliceConfig, recordSender, taskPluginCollector);
+
+            if ("xlsx".equalsIgnoreCase(compress) || "xls".equalsIgnoreCase(compress)) {
+//                UnstructuredStorageReaderUtil.doReadExeclFromStream(reader, context,
+//                        readerSliceConfig, recordSender, taskPluginCollector);
+            } else {
+                UnstructuredStorageReaderUtil.doReadFromStream(reader, context,
+                        readerSliceConfig, recordSender, taskPluginCollector);
+            }
+
         } catch (UnsupportedEncodingException uee) {
             throw DataXException
                     .asDataXException(
@@ -279,6 +292,109 @@ public class UnstructuredStorageReaderUtil {
                 LOG.info(String.format("Header line %s has been skiped.",
                         fetchLine));
             }
+
+//            if ("0".equals(CIBTYPE)) {
+//                String line;
+//                List<String> list = null;
+//                while ((line = reader.readLine()) != null) {
+//                    String[] parseRows = line.split(delimiterInStr);
+//                    list = CIBUtil.getColValueByIndex(parseRows, column);
+//                    UnstructuredStorageReaderUtil.transportOneRecord(recordSender,
+//                            column, list.toArray(new String[list.size()]), nullFormat, taskPluginCollector);
+//                }
+//            } else {
+                csvReader = new CsvReader(reader);
+                csvReader.setDelimiter(fieldDelimiter);
+
+                setCsvReaderConfig(csvReader);
+
+                Matcher partition = pattern.matcher(context);
+
+                String[] parseRows;
+                List<String> list = null;
+                while ((parseRows = UnstructuredStorageReaderUtil
+                        .splitBufferedReader(csvReader)) != null) {
+                    if ("0".equals(CIBTYPE)) {
+                        list = CIBUtil.getColValueByIndex(parseRows, column);
+                    } else {
+                        list = Arrays.stream(parseRows).collect(Collectors.toList());
+                    }
+                    while (partition.find()) {
+                        list.add(partition.group(2));
+                    }
+                    UnstructuredStorageReaderUtil.transportOneRecord(recordSender,
+                            column, list.toArray(new String[list.size()]), nullFormat, taskPluginCollector);
+                }
+//            }
+
+        } catch (UnsupportedEncodingException uee) {
+            throw DataXException
+                    .asDataXException(
+                            UnstructuredStorageReaderErrorCode.OPEN_FILE_WITH_CHARSET_ERROR,
+                            String.format("不支持的编码格式 : [%s]", encoding), uee);
+        } catch (FileNotFoundException fnfe) {
+            throw DataXException.asDataXException(
+                    UnstructuredStorageReaderErrorCode.FILE_NOT_EXISTS,
+                    String.format("无法找到文件 : [%s]", context), fnfe);
+        } catch (IOException ioe) {
+            throw DataXException.asDataXException(
+                    UnstructuredStorageReaderErrorCode.READ_FILE_IO_ERROR,
+                    String.format("读取文件错误 : [%s]", context), ioe);
+        } catch (Exception e) {
+            throw DataXException.asDataXException(
+                    UnstructuredStorageReaderErrorCode.RUNTIME_EXCEPTION,
+                    String.format("运行时异常 : %s", e.getMessage()), e);
+        } finally {
+            csvReader.close();
+            IOUtils.closeQuietly(reader);
+        }
+    }
+
+
+    public static void doReadExeclFromStream(BufferedReader reader, String context,
+                                             Configuration readerSliceConfig, RecordSender recordSender,
+                                             TaskPluginCollector taskPluginCollector) {
+        String encoding = readerSliceConfig.getString(Key.ENCODING,
+                Constant.DEFAULT_ENCODING);
+        Character fieldDelimiter = null;
+        String delimiterInStr = readerSliceConfig
+                .getString(Key.FIELD_DELIMITER);
+        if (null != delimiterInStr && 1 != delimiterInStr.length()) {
+            throw DataXException.asDataXException(
+                    UnstructuredStorageReaderErrorCode.ILLEGAL_VALUE,
+                    String.format("仅仅支持单字符切分, 您配置的切分为 : [%s]", delimiterInStr));
+        }
+        if (null == delimiterInStr) {
+            LOG.warn(String.format("您没有配置列分隔符, 使用默认值[%s]",
+                    Constant.DEFAULT_FIELD_DELIMITER));
+        }
+
+        // warn: default value ',', fieldDelimiter could be \n(lineDelimiter)
+        // for no fieldDelimiter
+        fieldDelimiter = readerSliceConfig.getChar(Key.FIELD_DELIMITER,
+                Constant.DEFAULT_FIELD_DELIMITER);
+        Boolean skipHeader = readerSliceConfig.getBool(Key.SKIP_HEADER,
+                Constant.DEFAULT_SKIP_HEADER);
+        // warn: no default value '\N'
+        String nullFormat = readerSliceConfig.getString(Key.NULL_FORMAT);
+
+        String CIBTYPE = readerSliceConfig
+                .getString(Key.CIB_TYPE);
+        // warn: Configuration -> List<ColumnEntry> for performance
+        // List<Configuration> column = readerSliceConfig
+        // .getListConfiguration(Key.COLUMN);
+        List<ColumnEntry> column = UnstructuredStorageReaderUtil
+                .getListColumnEntry(readerSliceConfig, Key.COLUMN);
+        CsvReader csvReader = null;
+
+        // every line logic
+        try {
+            // TODO lineDelimiter
+            if (skipHeader) {
+                String fetchLine = reader.readLine();
+                LOG.info(String.format("Header line %s has been skiped.",
+                        fetchLine));
+            }
             csvReader = new CsvReader(reader);
             csvReader.setDelimiter(fieldDelimiter);
 
@@ -291,7 +407,7 @@ public class UnstructuredStorageReaderUtil {
             while ((parseRows = UnstructuredStorageReaderUtil
                     .splitBufferedReader(csvReader)) != null) {
                 if ("0".equals(CIBTYPE)) {
-                    list = CIBUtil.getColValueByIndex(parseRows,column);
+                    list = CIBUtil.getColValueByIndex(parseRows, column);
                 } else {
                     list = Arrays.stream(parseRows).collect(Collectors.toList());
                 }
@@ -705,6 +821,7 @@ public class UnstructuredStorageReaderUtil {
         } else {
             //默认关闭安全模式, 放开10W字节的限制
             csvReader.setSafetySwitch(false);
+
             LOG.info(String.format("CsvReader使用默认值[%s],csvReaderConfig值为[%s]", JSON.toJSONString(csvReader), JSON.toJSONString(UnstructuredStorageReaderUtil.csvReaderConfigMap)));
         }
     }

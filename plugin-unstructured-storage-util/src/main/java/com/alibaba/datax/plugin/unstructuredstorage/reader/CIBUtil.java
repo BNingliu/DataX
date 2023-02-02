@@ -75,7 +75,7 @@ public class CIBUtil {
                 if (i >= cc.size()) {
                     sb.append("");
                 } else {
-                    sb.append(cc.get(i));
+                    sb.append(cc.get(i).toString().trim());
                 }
             }
             list.add(sb.toString().replace("\u1008", ""));
