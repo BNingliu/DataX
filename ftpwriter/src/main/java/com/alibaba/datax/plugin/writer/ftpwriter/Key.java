@@ -16,4 +16,7 @@ public class Key {
     public static final String CONNECTPATTERN = "connectPattern";
     
     public static final String PATH = "path";
+
+    public static final String COMPRESS_PASSWORD = "compressPassword";
+
 }

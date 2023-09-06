@@ -1,12 +1,6 @@
 package com.alibaba.datax.plugin.rdbms.reader;
 
-import com.alibaba.datax.common.element.BoolColumn;
-import com.alibaba.datax.common.element.BytesColumn;
-import com.alibaba.datax.common.element.DateColumn;
-import com.alibaba.datax.common.element.DoubleColumn;
-import com.alibaba.datax.common.element.LongColumn;
-import com.alibaba.datax.common.element.Record;
-import com.alibaba.datax.common.element.StringColumn;
+import com.alibaba.datax.common.element.*;
 import com.alibaba.datax.common.exception.DataXException;
 import com.alibaba.datax.common.plugin.RecordSender;
 import com.alibaba.datax.common.plugin.TaskPluginCollector;
@@ -22,7 +16,6 @@ import com.alibaba.datax.plugin.rdbms.util.DBUtilErrorCode;
 import com.alibaba.datax.plugin.rdbms.util.DataBaseType;
 import com.alibaba.datax.plugin.rdbms.util.RdbmsException;
 import com.google.common.collect.Lists;
-
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
@@ -172,6 +165,19 @@ public class CommonRdbmsReader {
         public void startRead(Configuration readerSliceConfig,
                               RecordSender recordSender,
                               TaskPluginCollector taskPluginCollector, int fetchSize) {
+            String limitPk = readerSliceConfig.getString(Key.LIMIT_PK,"").trim();
+            if(!StringUtils.isEmpty(limitPk)){
+                startReadLimit(
+                        readerSliceConfig,
+                        recordSender,
+                        taskPluginCollector,
+                        fetchSize,
+                        "0",
+                        limitPk
+                );
+            }else {
+
+
             String querySql = readerSliceConfig.getString(Key.QUERY_SQL);
             String table = readerSliceConfig.getString(Key.TABLE);
 
@@ -220,6 +226,66 @@ public class CommonRdbmsReader {
                 throw RdbmsException.asQueryException(this.dataBaseType, e, querySql, table, username);
             } finally {
                 DBUtil.closeDBResources(null, conn);
+            }
+            }
+        }
+
+
+
+
+        public void startReadLimit(
+                Configuration readerSliceConfig,
+                RecordSender recordSender,
+                TaskPluginCollector taskPluginCollector,
+                int fetchSize,
+                String startPk,
+                String limitPk
+
+        ) {
+            String limitSize = readerSliceConfig.getString(Key.LIMIT_SIZE).trim();
+            String table = readerSliceConfig.getString(Key.TABLE);
+            String querySql = readerSliceConfig.getString(Key.QUERY_SQL);
+
+            String orderTemplate = "SELECT * FROM ( %s ) xx  where %s > '%s' order by  %s   limit %s ";
+            querySql = String.format(orderTemplate, querySql, limitPk,startPk,limitPk,limitSize );
+
+            LOG.info("Begin to read  limit record by Sql: [{}\n] {}.",  querySql, basicMsg);
+            PerfRecord queryPerfRecord = new PerfRecord(taskGroupId,taskId, PerfRecord.PHASE.SQL_QUERY);
+            queryPerfRecord.start();
+            Connection conn = DBUtil.getConnection(this.dataBaseType, jdbcUrl,username, password);
+            // session config .etc related
+            DBUtil.dealWithSessionConfig(conn, readerSliceConfig, this.dataBaseType, basicMsg);
+            int columnNumber = 0;
+            ResultSet rs = null;
+            startPk = null;
+            try {
+                rs = DBUtil.query(conn, querySql, fetchSize);
+                queryPerfRecord.end();
+                ResultSetMetaData metaData = rs.getMetaData();
+                columnNumber = metaData.getColumnCount();
+                //这个统计干净的result_Next时间
+                PerfRecord allResultPerfRecord = new PerfRecord(taskGroupId, taskId, PerfRecord.PHASE.RESULT_NEXT_ALL);
+                allResultPerfRecord.start();
+                long rsNextUsedTime = 0;
+                long lastTime = System.nanoTime();
+                while (rs.next()) {
+                    rsNextUsedTime += (System.nanoTime() - lastTime);
+                    this.transportOneRecord(recordSender, rs,
+                            metaData, columnNumber, mandatoryEncoding, taskPluginCollector);
+                    lastTime = System.nanoTime();
+                    startPk = rs.getString(limitPk);
+                }
+                allResultPerfRecord.end(rsNextUsedTime);
+                //目前大盘是依赖这个打印，而之前这个Finish read record是包含了sql查询和result next的全部时间
+                LOG.info("Finished read record by Sql: [{}\n] {}.", querySql, basicMsg);
+            }catch (Exception e) {
+                throw RdbmsException.asQueryException(this.dataBaseType, e, querySql, table, username);
+            } finally {
+                DBUtil.closeDBResources(null, conn);
+                if(startPk!=null){
+                    //递归运行
+                    startReadLimit(readerSliceConfig,recordSender,taskPluginCollector,fetchSize,startPk,limitPk);
+                }
             }
         }
 

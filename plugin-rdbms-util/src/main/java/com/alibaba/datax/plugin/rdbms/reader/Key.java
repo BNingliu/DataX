@@ -24,7 +24,11 @@ public final class Key {
     public final static String HINT = "hint";
 
     public final static String SPLIT_PK = "splitPk";
-    
+
+    public final static String LIMIT_PK = "limitPk";
+    public final static String LIMIT_SIZE = "limitSize";
+
+
     public final static String SPLIT_MODE = "splitMode";
     
     public final static String SAMPLE_PERCENTAGE = "samplePercentage";

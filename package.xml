@@ -148,6 +148,20 @@
             <outputDirectory>datax</outputDirectory>
         </fileSet>
         <fileSet>
+            <directory>s3reader/target/datax/</directory>
+            <includes>
+                <include>**/*.*</include>
+            </includes>
+            <outputDirectory>datax</outputDirectory>
+        </fileSet>
+        <fileSet>
+            <directory>tencentossreader/target/datax/</directory>
+            <includes>
+                <include>**/*.*</include>
+            </includes>
+            <outputDirectory>datax</outputDirectory>
+        </fileSet>
+        <fileSet>
             <directory>mongodbreader/target/datax/</directory>
             <includes>
                 <include>**/*.*</include>
@@ -297,6 +311,23 @@
             </includes>
             <outputDirectory>datax</outputDirectory>
         </fileSet>
+
+        <fileSet>
+            <directory>s3writer/target/datax/</directory>
+            <includes>
+                <include>**/*.*</include>
+            </includes>
+            <outputDirectory>datax</outputDirectory>
+        </fileSet>
+
+        <fileSet>
+            <directory>tencentnosswriter/target/datax/</directory>
+            <includes>
+                <include>**/*.*</include>
+            </includes>
+            <outputDirectory>datax</outputDirectory>
+        </fileSet>
+
         <fileSet>
             <directory>adswriter/target/datax/</directory>
             <includes>

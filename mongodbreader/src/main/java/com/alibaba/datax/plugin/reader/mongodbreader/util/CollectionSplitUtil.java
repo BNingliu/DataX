@@ -56,7 +56,7 @@ public class CollectionSplitUtil {
         MongoCollection<Document> col = database.getCollection(collName);
         Document doc = col.find().limit(1).first();
         Object id = doc.get(KeyConstant.MONGO_PRIMARY_ID);
-        if (id instanceof ObjectId) {
+        if (id instanceof ObjectId|| id instanceof Integer ||id instanceof Long) {
             return true;
         }
         return false;

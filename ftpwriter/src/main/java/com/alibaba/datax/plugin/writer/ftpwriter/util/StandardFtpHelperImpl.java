@@ -1,18 +1,13 @@
 package com.alibaba.datax.plugin.writer.ftpwriter.util;
 
-import java.io.ByteArrayOutputStream;
-import java.io.IOException;
-import java.io.OutputStream;
+import java.io.*;
 import java.net.UnknownHostException;
 import java.util.HashSet;
 import java.util.Set;
 
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
-import org.apache.commons.net.ftp.FTPClient;
-import org.apache.commons.net.ftp.FTPClientConfig;
-import org.apache.commons.net.ftp.FTPFile;
-import org.apache.commons.net.ftp.FTPReply;
+import org.apache.commons.net.ftp.*;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
@@ -45,6 +40,8 @@ public class StandardFtpHelperImpl implements IFtpHelper {
             this.ftpClient.enterRemotePassiveMode();
             this.ftpClient.enterLocalPassiveMode();
             int reply = this.ftpClient.getReplyCode();
+            this.ftpClient.setFileType(FTP.BINARY_FILE_TYPE);
+
             if (!FTPReply.isPositiveCompletion(reply)) {
                 this.ftpClient.disconnect();
                 String message = String
@@ -90,8 +87,8 @@ public class StandardFtpHelperImpl implements IFtpHelper {
                 String message = String.format(
                         "与ftp服务器断开连接失败, errorMessage:%s", e.getMessage());
                 LOG.error(message);
-                throw DataXException.asDataXException(
-                        FtpWriterErrorCode.FAIL_DISCONNECT, message, e);
+//                throw DataXException.asDataXException(
+//                        FtpWriterErrorCode.FAIL_DISCONNECT, message, e);
             } finally {
                 if (this.ftpClient.isConnected()) {
                     try {
@@ -101,8 +98,8 @@ public class StandardFtpHelperImpl implements IFtpHelper {
                                 "与ftp服务器断开连接失败, errorMessage:%s",
                                 e.getMessage());
                         LOG.error(message);
-                        throw DataXException.asDataXException(
-                                FtpWriterErrorCode.FAIL_DISCONNECT, message, e);
+//                        throw DataXException.asDataXException(
+//                                FtpWriterErrorCode.FAIL_DISCONNECT, message, e);
                     }
                 }
                 this.ftpClient = null;
@@ -206,6 +203,41 @@ public class StandardFtpHelperImpl implements IFtpHelper {
             throw DataXException.asDataXException(
                     FtpWriterErrorCode.OPEN_FILE_ERROR, message);
         }
+    }
+    @Override
+    public Boolean getStoreFile(String filePath, InputStream stream) {
+        try {
+            this.printWorkingDirectory();
+            String parentDir = filePath.substring(0,
+                    StringUtils.lastIndexOf(filePath, IOUtils.DIR_SEPARATOR));
+            this.ftpClient.changeWorkingDirectory(parentDir);
+            this.printWorkingDirectory();
+            String fileName = new File(filePath).getName();
+
+            boolean b = this.ftpClient.storeFile(fileName, stream);
+
+            String message = String.format(
+                    "【上传】打开FTP文件[%s]获取写出流时出错,请确认文件%s有权限创建，有权限写出等", filePath,
+                    filePath);
+            if (!b) {
+                throw DataXException.asDataXException(  FtpWriterErrorCode.OPEN_FILE_ERROR, message);
+            }
+
+            return b;
+        } catch (IOException e) {
+            String message = String.format(
+                    "【上传】文件 : [%s] 时出错,请确认文件:[%s]存在且配置的用户有权限写, errorMessage:%s",
+                    filePath, filePath, e.getMessage());
+            LOG.error(message);
+            throw DataXException.asDataXException(
+                    FtpWriterErrorCode.OPEN_FILE_ERROR, message);
+        }
+    }
+
+    @Override
+    public Boolean sendNoOp() throws IOException {
+        return this.ftpClient.sendNoOp();
+
     }
 
     @Override

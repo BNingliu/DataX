@@ -6,17 +6,13 @@ import com.alibaba.datax.common.spi.Writer;
 import com.alibaba.datax.common.util.Configuration;
 import com.alibaba.datax.common.util.RetryUtil;
 import com.alibaba.datax.plugin.unstructuredstorage.writer.UnstructuredStorageWriterUtil;
-import com.alibaba.datax.plugin.writer.ftpwriter.util.Constant;
-import com.alibaba.datax.plugin.writer.ftpwriter.util.IFtpHelper;
-import com.alibaba.datax.plugin.writer.ftpwriter.util.SftpHelperImpl;
-import com.alibaba.datax.plugin.writer.ftpwriter.util.StandardFtpHelperImpl;
-
+import com.alibaba.datax.plugin.writer.ftpwriter.util.*;
 import org.apache.commons.io.IOUtils;
 import org.apache.commons.lang3.StringUtils;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
-import java.io.OutputStream;
+import java.io.*;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -116,7 +112,7 @@ public class FtpWriter extends Writer {
             String writeMode = this.writerSliceConfig
                     .getString(com.alibaba.datax.plugin.unstructuredstorage.writer.Key.WRITE_MODE);
 
-            fileName = fileName.replaceAll("\\\\","");
+            fileName = fileName.replaceAll("\\\\", "");
             Set<String> allFileExists = this.ftpHelper.getAllFilesInDir(path,
                     fileName);
             this.allFileExists = allFileExists;
@@ -235,6 +231,12 @@ public class FtpWriter extends Writer {
             } else if ("ftp".equalsIgnoreCase(this.protocol)) {
                 this.ftpHelper = new StandardFtpHelperImpl();
             }
+            getLogin();
+        }
+
+
+
+        public void getLogin(){
             try {
                 RetryUtil.executeWithRetry(new Callable<Void>() {
                     @Override
@@ -252,7 +254,9 @@ public class FtpWriter extends Writer {
                 throw DataXException.asDataXException(
                         FtpWriterErrorCode.FAIL_LOGIN, message, e);
             }
+
         }
+
 
         @Override
         public void prepare() {
@@ -262,15 +266,36 @@ public class FtpWriter extends Writer {
         @Override
         public void startWrite(RecordReceiver lineReceiver) {
             LOG.info("begin do write...");
+            this.fileName = this.fileName.substring(0,this.fileName.lastIndexOf("__"));
             String fileFullPath = UnstructuredStorageWriterUtil.buildFilePath(
                     this.path, this.fileName, this.suffix);
 
 //            fileFullPath = fileFullPath.replaceAll("\\\\","");
             LOG.info(String.format("write to file : [%s]", fileFullPath));
+            if (null == suffix) {
+                suffix = "";
+            } else {
+                suffix = suffix.trim();
+            }
+
+            String localFilePath = "/data/di_file/datax_ftp/";
+            File tempFile = new File(localFilePath);
+            if (!tempFile.exists()) {
+                boolean created = tempFile.mkdirs();
+            }
+            String compress = this.writerSliceConfig.getString(com.alibaba.datax.plugin.unstructuredstorage.writer.Key.COMPRESS);
+            String password = this.writerSliceConfig.getString(Key.COMPRESS_PASSWORD);;
+
+            String localFileName = localFilePath + fileName + suffix;
 
             OutputStream outputStream = null;
             try {
-                outputStream = this.ftpHelper.getOutputStream(fileFullPath);
+                if ("zip".equals(compress)) {
+                    outputStream = new FileOutputStream(localFileName);
+                } else {
+                    outputStream = this.ftpHelper.getOutputStream(fileFullPath);
+                }
+
                 UnstructuredStorageWriterUtil.writeToStream(lineReceiver,
                         outputStream, this.writerSliceConfig, this.fileName,
                         this.getTaskPluginCollector());
@@ -280,6 +305,53 @@ public class FtpWriter extends Writer {
                         String.format("无法创建待写文件 : [%s]", this.fileName), e);
             } finally {
                 IOUtils.closeQuietly(outputStream);
+            }
+
+            if ("zip".equals(compress) ) {
+                String sinkPath = ZipPassWord.zip(localFileName, password);
+                File sinkFile = new File(sinkPath);
+                fileFullPath = UnstructuredStorageWriterUtil.buildFilePath(this.path, sinkFile.getName(), "");
+
+                LOG.info(String.format("write to file : [%s]", fileFullPath));
+
+
+
+                try {
+                    // 发送一个空操作命令以检测连接是否有效
+                    Boolean aBoolean = this.ftpHelper.sendNoOp();
+                    if(!aBoolean){
+                        LOG.info("连接从新连接....");
+                        //重新登录
+                        getLogin();
+                    }
+                    // 连接仍然有效，继续操作
+                } catch (IOException e) {
+                    // 连接已经断开
+                    //重新登录
+                    LOG.info("连接从新连接....");
+                    getLogin();
+                }
+
+                try (InputStream inputStream = new FileInputStream(sinkFile);
+                     OutputStream outputStreamm = this.ftpHelper.getOutputStream(fileFullPath);
+                ) {
+//                    Boolean storeFile = this.ftpHelper.getStoreFile(fileFullPath, fis);
+
+                    byte[] buffer = new byte[8192]; // 缓冲区大小，可根据需要调整
+                    int bytesRead;
+
+                    while ((bytesRead = inputStream.read(buffer)) != -1) {
+                        outputStreamm.write(buffer, 0, bytesRead);
+                    }
+
+                } catch (Exception e) {
+                    e.printStackTrace();
+                    throw DataXException.asDataXException(FtpWriterErrorCode.WRITE_FILE_IO_ERROR, e);
+                } finally {
+                    // 删除临时文件
+                    new File(localFileName).delete();
+                    sinkFile.delete();
+                }
             }
             LOG.info("end do write");
         }

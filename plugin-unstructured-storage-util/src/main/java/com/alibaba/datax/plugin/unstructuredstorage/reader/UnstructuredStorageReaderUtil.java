@@ -5,6 +5,7 @@ import com.alibaba.datax.common.exception.DataXException;
 import com.alibaba.datax.common.plugin.RecordSender;
 import com.alibaba.datax.common.plugin.TaskPluginCollector;
 import com.alibaba.datax.common.util.Configuration;
+import com.alibaba.excel.EasyExcel;
 import com.alibaba.fastjson.JSON;
 import com.alibaba.fastjson.JSONObject;
 import com.alibaba.fastjson.TypeReference;
@@ -28,6 +29,7 @@ import java.io.*;
 import java.nio.charset.UnsupportedCharsetException;
 import java.text.DateFormat;
 import java.util.*;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.regex.Matcher;
 import java.util.regex.Pattern;
 import java.util.stream.Collectors;
@@ -88,6 +90,8 @@ public class UnstructuredStorageReaderUtil {
                                       Configuration readerSliceConfig, RecordSender recordSender,
                                       TaskPluginCollector taskPluginCollector) {
         String compress = readerSliceConfig.getString(Key.COMPRESS, null);
+        String fileType = readerSliceConfig.getString(Key.FILETYPE, "default");
+
         if (StringUtils.isBlank(compress)) {
             compress = null;
         }
@@ -110,12 +114,14 @@ public class UnstructuredStorageReaderUtil {
         }
 
         BufferedReader reader = null;
+        InputStream excelInputStream = null;
         int bufferSize = readerSliceConfig.getInt(Key.BUFFER_SIZE,
                 Constant.DEFAULT_BUFFER_SIZE);
 
         // compress logic
         try {
             if (null == compress) {
+                if("xlsx".contains(fileType))excelInputStream = inputStream;
                 reader = new BufferedReader(new InputStreamReader(inputStream,
                         encoding), bufferSize);
             } else {
@@ -123,40 +129,43 @@ public class UnstructuredStorageReaderUtil {
                 if ("lzo_deflate".equalsIgnoreCase(compress)) {
                     LzoInputStream lzoInputStream = new LzoInputStream(
                             inputStream, new LzoDecompressor1x_safe());
+                    if("xlsx".contains(fileType))excelInputStream = lzoInputStream;
+
                     reader = new BufferedReader(new InputStreamReader(
                             lzoInputStream, encoding));
                 } else if ("lzo".equalsIgnoreCase(compress)) {
                     LzoInputStream lzopInputStream = new ExpandLzopInputStream(
                             inputStream);
+                    if("xlsx".contains(fileType))excelInputStream = lzopInputStream;
                     reader = new BufferedReader(new InputStreamReader(
                             lzopInputStream, encoding));
                 } else if ("gzip".equalsIgnoreCase(compress)) {
                     CompressorInputStream compressorInputStream = new GzipCompressorInputStream(
                             inputStream);
+                    if("xlsx".contains(fileType)) excelInputStream = compressorInputStream;
+
                     reader = new BufferedReader(new InputStreamReader(
                             compressorInputStream, encoding), bufferSize);
                 } else if ("bzip2".equalsIgnoreCase(compress)) {
                     CompressorInputStream compressorInputStream = new BZip2CompressorInputStream(
                             inputStream);
+                    if("xlsx".contains(fileType)) excelInputStream = compressorInputStream;
                     reader = new BufferedReader(new InputStreamReader(
                             compressorInputStream, encoding), bufferSize);
                 } else if ("hadoop-snappy".equalsIgnoreCase(compress)) {
                     CompressionCodec snappyCodec = new SnappyCodec();
                     InputStream snappyInputStream = snappyCodec.createInputStream(
                             inputStream);
+                    if("xlsx".contains(fileType))excelInputStream = snappyInputStream;
                     reader = new BufferedReader(new InputStreamReader(
                             snappyInputStream, encoding));
                 } else if ("framing-snappy".equalsIgnoreCase(compress)) {
                     InputStream snappyInputStream = new SnappyFramedInputStream(
                             inputStream);
+                    if("xlsx".contains(fileType))excelInputStream = snappyInputStream;
                     reader = new BufferedReader(new InputStreamReader(
                             snappyInputStream, encoding));
-                } else if ("xlsx".equalsIgnoreCase(compress) || "xls".equalsIgnoreCase(compress)) {
-//                    InputStream snappyInputStream = new SnappyFramedInputStream(
-//                            inputStream);
-//                    reader = new BufferedReader(new InputStreamReader(
-//                            snappyInputStream, encoding));
-                }/* else if ("lzma".equalsIgnoreCase(compress)) {
+                } /* else if ("lzma".equalsIgnoreCase(compress)) {
 					CompressorInputStream compressorInputStream = new LZMACompressorInputStream(
 							inputStream);
 					reader = new BufferedReader(new InputStreamReader(
@@ -204,6 +213,8 @@ public class UnstructuredStorageReaderUtil {
 				}*/ else if ("zip".equalsIgnoreCase(compress)) {
                     ZipCycleInputStream zipCycleInputStream = new ZipCycleInputStream(
                             inputStream);
+                    if("xlsx".contains(fileType)) excelInputStream = zipCycleInputStream;
+
                     reader = new BufferedReader(new InputStreamReader(
                             zipCycleInputStream, encoding), bufferSize);
                 } else {
@@ -215,9 +226,9 @@ public class UnstructuredStorageReaderUtil {
                 }
             }
 
-            if ("xlsx".equalsIgnoreCase(compress) || "xls".equalsIgnoreCase(compress)) {
-//                UnstructuredStorageReaderUtil.doReadExeclFromStream(reader, context,
-//                        readerSliceConfig, recordSender, taskPluginCollector);
+            if("xlsx".contains(fileType)) {
+                UnstructuredStorageReaderUtil.doReadExeclFromStream(excelInputStream, context,
+                        readerSliceConfig, recordSender, taskPluginCollector);
             } else {
                 UnstructuredStorageReaderUtil.doReadFromStream(reader, context,
                         readerSliceConfig, recordSender, taskPluginCollector);
@@ -257,9 +268,10 @@ public class UnstructuredStorageReaderUtil {
         String delimiterInStr = readerSliceConfig
                 .getString(Key.FIELD_DELIMITER);
         if (null != delimiterInStr && 1 != delimiterInStr.length()) {
-            throw DataXException.asDataXException(
-                    UnstructuredStorageReaderErrorCode.ILLEGAL_VALUE,
-                    String.format("仅仅支持单字符切分, 您配置的切分为 : [%s]", delimiterInStr));
+            LOG.warn(  String.format("你配置了多分隔符注意转义, 您配置的切分为 : [%s]", delimiterInStr));
+//            throw DataXException.asDataXException(
+//                    UnstructuredStorageReaderErrorCode.ILLEGAL_VALUE,
+//                    String.format("仅仅支持单字符切分, 您配置的切分为 : [%s]", delimiterInStr));
         }
         if (null == delimiterInStr) {
             LOG.warn(String.format("您没有配置列分隔符, 使用默认值[%s]",
@@ -283,7 +295,7 @@ public class UnstructuredStorageReaderUtil {
         List<ColumnEntry> column = UnstructuredStorageReaderUtil
                 .getListColumnEntry(readerSliceConfig, Key.COLUMN);
         CsvReader csvReader = null;
-
+        int columnSize = column==null?0:column.size();
         // every line logic
         try {
             // TODO lineDelimiter
@@ -293,16 +305,25 @@ public class UnstructuredStorageReaderUtil {
                         fetchLine));
             }
 
-//            if ("0".equals(CIBTYPE)) {
-//                String line;
-//                List<String> list = null;
-//                while ((line = reader.readLine()) != null) {
-//                    String[] parseRows = line.split(delimiterInStr);
-//                    list = CIBUtil.getColValueByIndex(parseRows, column);
-//                    UnstructuredStorageReaderUtil.transportOneRecord(recordSender,
-//                            column, list.toArray(new String[list.size()]), nullFormat, taskPluginCollector);
-//                }
-//            } else {
+            if (null != delimiterInStr && delimiterInStr.length()>1) {
+                String line;
+                List<String> list = null;
+                while ((line = reader.readLine()) != null) {
+                    if(StringUtils.isEmpty(line.trim()))continue;
+                    String[] parseRows = line.split(delimiterInStr,-1);
+                    if(parseRows.length==1||parseRows.length<columnSize){
+                        LOG.warn(String.format("该行数据有问题,将跳过: [%s]", parseRows));
+                        continue;
+                    }
+                    if ("0".equals(CIBTYPE)) {
+                        list = CIBUtil.getColValueByIndex(parseRows, column);
+                    } else {
+                        list = Arrays.stream(parseRows).collect(Collectors.toList());
+                    }
+                    UnstructuredStorageReaderUtil.transportOneRecord(recordSender,
+                            column, list.toArray(new String[list.size()]), nullFormat, taskPluginCollector);
+                }
+            } else {
                 csvReader = new CsvReader(reader);
                 csvReader.setDelimiter(fieldDelimiter);
 
@@ -325,7 +346,7 @@ public class UnstructuredStorageReaderUtil {
                     UnstructuredStorageReaderUtil.transportOneRecord(recordSender,
                             column, list.toArray(new String[list.size()]), nullFormat, taskPluginCollector);
                 }
-//            }
+            }
 
         } catch (UnsupportedEncodingException uee) {
             throw DataXException
@@ -345,98 +366,58 @@ public class UnstructuredStorageReaderUtil {
                     UnstructuredStorageReaderErrorCode.RUNTIME_EXCEPTION,
                     String.format("运行时异常 : %s", e.getMessage()), e);
         } finally {
-            csvReader.close();
+            if (csvReader!=null) {
+                csvReader.close();
+            }
             IOUtils.closeQuietly(reader);
         }
     }
 
 
-    public static void doReadExeclFromStream(BufferedReader reader, String context,
+    public static void doReadExeclFromStream(InputStream inputStream, String context,
                                              Configuration readerSliceConfig, RecordSender recordSender,
                                              TaskPluginCollector taskPluginCollector) {
-        String encoding = readerSliceConfig.getString(Key.ENCODING,
-                Constant.DEFAULT_ENCODING);
-        Character fieldDelimiter = null;
-        String delimiterInStr = readerSliceConfig
-                .getString(Key.FIELD_DELIMITER);
-        if (null != delimiterInStr && 1 != delimiterInStr.length()) {
-            throw DataXException.asDataXException(
-                    UnstructuredStorageReaderErrorCode.ILLEGAL_VALUE,
-                    String.format("仅仅支持单字符切分, 您配置的切分为 : [%s]", delimiterInStr));
-        }
-        if (null == delimiterInStr) {
-            LOG.warn(String.format("您没有配置列分隔符, 使用默认值[%s]",
-                    Constant.DEFAULT_FIELD_DELIMITER));
-        }
 
-        // warn: default value ',', fieldDelimiter could be \n(lineDelimiter)
-        // for no fieldDelimiter
-        fieldDelimiter = readerSliceConfig.getChar(Key.FIELD_DELIMITER,
-                Constant.DEFAULT_FIELD_DELIMITER);
-        Boolean skipHeader = readerSliceConfig.getBool(Key.SKIP_HEADER,
-                Constant.DEFAULT_SKIP_HEADER);
-        // warn: no default value '\N'
-        String nullFormat = readerSliceConfig.getString(Key.NULL_FORMAT);
 
-        String CIBTYPE = readerSliceConfig
-                .getString(Key.CIB_TYPE);
-        // warn: Configuration -> List<ColumnEntry> for performance
-        // List<Configuration> column = readerSliceConfig
-        // .getListConfiguration(Key.COLUMN);
         List<ColumnEntry> column = UnstructuredStorageReaderUtil
                 .getListColumnEntry(readerSliceConfig, Key.COLUMN);
-        CsvReader csvReader = null;
+
+        Boolean skipHeader = readerSliceConfig.getBool(Key.SKIP_HEADER,
+                Constant.DEFAULT_SKIP_HEADER);
+
+        String nullFormat = readerSliceConfig.getString(Key.NULL_FORMAT);
 
         // every line logic
         try {
-            // TODO lineDelimiter
+            List<Map<Integer,String>> listMap = null;
+
             if (skipHeader) {
-                String fetchLine = reader.readLine();
-                LOG.info(String.format("Header line %s has been skiped.",
-                        fetchLine));
+                LOG.info(String.format("Header line %s has been skiped.",1));
+                listMap = EasyExcel.read(inputStream).sheet().headRowNumber(1).doReadSync();
+            }else {
+                listMap =  EasyExcel.read(inputStream).sheet().headRowNumber(0).doReadSync();
             }
-            csvReader = new CsvReader(reader);
-            csvReader.setDelimiter(fieldDelimiter);
 
-            setCsvReaderConfig(csvReader);
-
-            Matcher partition = pattern.matcher(context);
-
-            String[] parseRows;
             List<String> list = null;
-            while ((parseRows = UnstructuredStorageReaderUtil
-                    .splitBufferedReader(csvReader)) != null) {
-                if ("0".equals(CIBTYPE)) {
-                    list = CIBUtil.getColValueByIndex(parseRows, column);
-                } else {
-                    list = Arrays.stream(parseRows).collect(Collectors.toList());
-                }
-                while (partition.find()) {
-                    list.add(partition.group(2));
+            for (Map<Integer,String> data : listMap) {
+                list = new ArrayList<>();
+                for (Integer key : data.keySet()) {
+                    list.add(data.get(key));
                 }
                 UnstructuredStorageReaderUtil.transportOneRecord(recordSender,
                         column, list.toArray(new String[list.size()]), nullFormat, taskPluginCollector);
             }
-        } catch (UnsupportedEncodingException uee) {
-            throw DataXException
-                    .asDataXException(
-                            UnstructuredStorageReaderErrorCode.OPEN_FILE_WITH_CHARSET_ERROR,
-                            String.format("不支持的编码格式 : [%s]", encoding), uee);
-        } catch (FileNotFoundException fnfe) {
-            throw DataXException.asDataXException(
-                    UnstructuredStorageReaderErrorCode.FILE_NOT_EXISTS,
-                    String.format("无法找到文件 : [%s]", context), fnfe);
-        } catch (IOException ioe) {
-            throw DataXException.asDataXException(
-                    UnstructuredStorageReaderErrorCode.READ_FILE_IO_ERROR,
-                    String.format("读取文件错误 : [%s]", context), ioe);
+
         } catch (Exception e) {
             throw DataXException.asDataXException(
                     UnstructuredStorageReaderErrorCode.RUNTIME_EXCEPTION,
                     String.format("运行时异常 : %s", e.getMessage()), e);
         } finally {
-            csvReader.close();
-            IOUtils.closeQuietly(reader);
+            try {
+                inputStream.close();
+            } catch (IOException e) {
+                e.printStackTrace();
+            }
         }
     }
 
@@ -468,31 +449,40 @@ public class UnstructuredStorageReaderUtil {
         return transportOneRecord(recordSender, column, sourceLine, nullFormat, taskPluginCollector);
     }
 
+    private static AtomicLong atomicLong =new AtomicLong(0L);
+
     public static Record transportOneRecord(RecordSender recordSender,
                                             List<ColumnEntry> columnConfigs, String[] sourceLine,
                                             String nullFormat, TaskPluginCollector taskPluginCollector) {
         Record record = recordSender.createRecord();
         Column columnGenerated = null;
-
+        atomicLong.incrementAndGet();
         // 创建都为String类型column的record
         if (null == columnConfigs || columnConfigs.size() == 0) {
-            for (String columnValue : sourceLine) {
-                // not equalsIgnoreCase, it's all ok if nullFormat is null
-                if (columnValue.equals(nullFormat)) {
-                    columnGenerated = new StringColumn(null);
-                } else {
-                    columnGenerated = new StringColumn(columnValue);
+            try {
+                for (String columnValue : sourceLine) {
+                    // not equalsIgnoreCase, it's all ok if nullFormat is null
+                    if (columnValue==null||columnValue.equals(nullFormat)) {
+                        columnGenerated = new StringColumn(null);
+                    } else {
+                        columnGenerated = new StringColumn(columnValue);
+                    }
+                    record.addColumn(columnGenerated);
                 }
-                record.addColumn(columnGenerated);
+                recordSender.sendToWriter(record);
+            }catch (Exception e){
+                throw new IllegalArgumentException(
+                        String.format("第【"+atomicLong.get()+"】行数据转化出错请 [%s] 排查", Arrays.toString(sourceLine)));
             }
-            recordSender.sendToWriter(record);
+
         } else {
             try {
-                for (ColumnEntry columnConfig : columnConfigs) {
+                for (int i = 0; i < columnConfigs.size(); i++) {
+                    ColumnEntry columnConfig = columnConfigs.get(i);
                     String columnType = columnConfig.getType();
                     Integer columnIndex = columnConfig.getIndex();
                     String columnConst = columnConfig.getValue();
-
+                    String cibIndex = columnConfig.getCIBIndex();
                     String columnValue = null;
 
                     if (null == columnIndex && null == columnConst) {
@@ -510,16 +500,20 @@ public class UnstructuredStorageReaderUtil {
                     }
 
                     if (null != columnIndex) {
-                        if (columnIndex >= sourceLine.length) {
+                        if (columnIndex >= sourceLine.length&&cibIndex==null) {
                             String message = String
-                                    .format("您尝试读取的列越界,源文件该行有 [%s] 列,您尝试读取第 [%s] 列, 数据详情[%s]",
+                                    .format("在第【"+atomicLong.get()+"】行您尝试读取的列越界,源文件该行有 [%s] 列,您尝试读取第 [%s] 列, 数据详情[%s]",
                                             sourceLine.length, columnIndex + 1,
                                             StringUtils.join(sourceLine, ","));
                             LOG.warn(message);
                             throw new IndexOutOfBoundsException(message);
                         }
 
-                        columnValue = sourceLine[columnIndex];
+                        if(cibIndex!=null){
+                            columnValue = sourceLine[i];
+                        }else {
+                            columnValue = sourceLine[columnIndex];
+                        }
                     } else {
                         columnValue = columnConst;
                     }
@@ -600,6 +594,7 @@ public class UnstructuredStorageReaderUtil {
                     record.addColumn(columnGenerated);
 
                 }
+
                 recordSender.sendToWriter(record);
             } catch (IllegalArgumentException iae) {
                 taskPluginCollector
@@ -683,7 +678,7 @@ public class UnstructuredStorageReaderUtil {
             compress = compress.toLowerCase().trim();
             boolean compressTag = "gzip".equals(compress) || "bzip2".equals(compress) || "zip".equals(compress)
                     || "lzo".equals(compress) || "lzo_deflate".equals(compress) || "hadoop-snappy".equals(compress)
-                    || "framing-snappy".equals(compress);
+                    || "framing-snappy".equals(compress)|| "xlsx".equals(compress)|| "xls".equals(compress);
             if (!compressTag) {
                 throw DataXException.asDataXException(UnstructuredStorageReaderErrorCode.ILLEGAL_VALUE,
                         String.format("仅支持 gzip, bzip2, zip, lzo, lzo_deflate, hadoop-snappy, framing-snappy " +
@@ -706,8 +701,10 @@ public class UnstructuredStorageReaderUtil {
                             com.alibaba.datax.plugin.unstructuredstorage.reader.Key.FIELD_DELIMITER));
         } else if (1 != delimiterInStr.length()) {
             // warn: if have, length must be one
-            throw DataXException.asDataXException(UnstructuredStorageReaderErrorCode.ILLEGAL_VALUE,
-                    String.format("仅仅支持单字符切分, 您配置的切分为 : [%s]", delimiterInStr));
+            LOG.warn(  String.format("你配置了多分隔符注意转义, 您配置的切分为 : [%s]", delimiterInStr));
+
+//            throw DataXException.asDataXException(UnstructuredStorageReaderErrorCode.ILLEGAL_VALUE,
+//                    String.format("仅仅支持单字符切分, 您配置的切分为 : [%s]", delimiterInStr));
         }
     }
 

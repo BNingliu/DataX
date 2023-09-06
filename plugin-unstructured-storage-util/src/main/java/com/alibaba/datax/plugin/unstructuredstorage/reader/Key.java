@@ -23,6 +23,7 @@ public class Key {
 	public static final String VALUE = "value";
 
 	public static final String COMPRESS = "compress";
+	public static final String FILETYPE = "fileType";
 
 	public static final String NULL_FORMAT = "nullFormat";
 

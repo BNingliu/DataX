@@ -1,5 +1,7 @@
 package com.alibaba.datax.plugin.writer.ftpwriter.util;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.Set;
 
@@ -32,5 +34,7 @@ public interface IFtpHelper {
     public void deleteFiles(Set<String> filesToDelete);
     
     public void completePendingCommand();
+    public Boolean getStoreFile(String filePath, InputStream stream);
 
+    public  Boolean sendNoOp() throws IOException;
 }

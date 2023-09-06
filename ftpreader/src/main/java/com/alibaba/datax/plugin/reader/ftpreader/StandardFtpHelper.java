@@ -65,7 +65,12 @@ public class StandardFtpHelper extends FtpHelper {
 			}
 			//设置命令传输编码
 			String fileEncoding = System.getProperty("file.encoding");
+
 			ftpClient.setControlEncoding(fileEncoding);
+
+			ftpClient.setFileType(FTP.BINARY_FILE_TYPE); //
+			ftpClient.setBufferSize(1024 * 1024); // 设置缓冲区大小为1MB
+
 		} catch (UnknownHostException e) {
 			String message = String.format("请确认ftp服务器地址是否正确，无法连接到地址为: [%s] 的ftp服务器", host);
 			LOG.error(message);
@@ -94,7 +99,7 @@ public class StandardFtpHelper extends FtpHelper {
 			} catch (IOException e) {
 				String message = "与ftp服务器断开连接失败";
 				LOG.error(message);
-				throw DataXException.asDataXException(FtpReaderErrorCode.FAIL_DISCONNECT, message, e);
+//				throw DataXException.asDataXException(FtpReaderErrorCode.FAIL_DISCONNECT, message, e);
 			}finally {
 				if(ftpClient.isConnected()){
 					try {
@@ -102,7 +107,7 @@ public class StandardFtpHelper extends FtpHelper {
 					} catch (IOException e) {
 						String message = "与ftp服务器断开连接失败";
 						LOG.error(message);
-						throw DataXException.asDataXException(FtpReaderErrorCode.FAIL_DISCONNECT, message, e);
+//						throw DataXException.asDataXException(FtpReaderErrorCode.FAIL_DISCONNECT, message, e);
 					}
 				}
 

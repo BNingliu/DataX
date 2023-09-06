@@ -22,6 +22,7 @@ public class SM3Transformer extends Transformer {
     public SM3Transformer() {
         setTransformerName("dx_sm3");
     }
+    private  static String slat="YTD";
 
     @Override
     public Record evaluate(Record record, Object... paras) {
@@ -46,8 +47,8 @@ public class SM3Transformer extends Transformer {
             if(oriValue == null){
                 return  record;
             }
-            String newValue = SMHelper.sm3Hash(oriValue);
-            record.setColumn(columnIndex, new StringColumn(newValue));
+            String newValue = SMHelper.sm3Hash(slat+oriValue);
+            record.setColumn(columnIndex, new StringColumn(newValue.toUpperCase()));
         } catch (Exception e) {
             throw DataXException.asDataXException(TransformerErrorCode.TRANSFORMER_RUN_EXCEPTION, e.getMessage(),e);
         }

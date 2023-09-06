@@ -275,7 +275,8 @@ public class EsReader extends Reader {
                 return false;
             }
             List<String> sources = result.getSourceAsStringList();
-            if (sources == null) {
+
+            if (sources == null||sources.size()==0) {
                 sources = Collections.emptyList();
             }
 //            log.info("search result: total={},maxScore={},hits={}", result.getTotal(), result.getMaxScore(), sources.size());

@@ -76,7 +76,7 @@ public class UnstructuredStorageWriterUtil {
         if (StringUtils.isBlank(compress)) {
             writerConfiguration.set(Key.COMPRESS, null);
         } else {
-            Set<String> supportedCompress = Sets.newHashSet("gzip", "bzip2");
+            Set<String> supportedCompress = Sets.newHashSet("gzip", "bzip2","zip");
             if (!supportedCompress.contains(compress.toLowerCase().trim())) {
                 throw DataXException.asDataXException(
                         UnstructuredStorageWriterErrorCode.ILLEGAL_VALUE, String.format("unsupported commpress format %s ", compress));
@@ -194,7 +194,10 @@ public class UnstructuredStorageWriterUtil {
                             outputStream);
                     writer = new BufferedWriter(new OutputStreamWriter(
                             compressorOutputStream, encoding));
-                } else {
+                } else if("zip".equals(compress)){
+                    writer = new BufferedWriter(new OutputStreamWriter(
+                            outputStream, encoding));
+                }else {
                     throw DataXException
                             .asDataXException(
                                     UnstructuredStorageWriterErrorCode.ILLEGAL_VALUE, compress);

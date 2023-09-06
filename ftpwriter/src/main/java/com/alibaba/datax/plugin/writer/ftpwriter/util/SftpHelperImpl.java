@@ -1,6 +1,8 @@
 package com.alibaba.datax.plugin.writer.ftpwriter.util;
 
 import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.InputStream;
 import java.io.OutputStream;
 import java.util.HashSet;
 import java.util.Properties;
@@ -219,6 +221,34 @@ public class SftpHelperImpl implements IFtpHelper {
         }
     }
 
+
+    @Override
+    public Boolean getStoreFile(String filePath, InputStream stream) {
+        try {
+            this.printWorkingDirectory();
+            String parentDir = filePath.substring(0,
+                    StringUtils.lastIndexOf(filePath, IOUtils.DIR_SEPARATOR));
+            this.channelSftp.cd(parentDir);
+            this.printWorkingDirectory();
+
+            channelSftp.put( stream,new File(filePath).getName());
+
+            return true;
+        } catch (SftpException e) {
+            String message = String.format(
+                    "写出文件[%s] 时出错,请确认文件%s有权限写出, errorMessage:%s", filePath,
+                    filePath, e.getMessage());
+            LOG.error(message);
+            throw DataXException.asDataXException(
+                    FtpWriterErrorCode.OPEN_FILE_ERROR, message);
+        }
+    }
+
+    @Override
+    public Boolean sendNoOp() {
+        return true;
+    }
+
     @Override
     public String getRemoteFileContent(String filePath) {
         try {
@@ -303,5 +333,6 @@ public class SftpHelperImpl implements IFtpHelper {
     @Override
     public void completePendingCommand() {
     }
+
 
 }
