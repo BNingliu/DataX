@@ -1,0 +1,7 @@
+{
+    "name": "tencentossreader",
+    "class": "com.alibaba.datax.plugin.reader.tencentossreader.TencentOssReader",
+    "description": "TENCENT_OSS_READER",
+    "developer": "levi"
+}
+

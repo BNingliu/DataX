@@ -1,0 +1,6 @@
+{
+    "name": "qianbasewriter",
+    "class": "com.alibaba.datax.plugin.writer.qianbasewriter.QianBaseWriter",
+    "description": "useScene: prod. mechanism: Jdbc connection using the database, execute copy sql. warn: The more you know about the database, the less problems you encounter.",
+    "developer": "liuningbo"
+}

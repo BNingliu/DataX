@@ -1,0 +1,7 @@
+{
+    "name": "tencentosswriter",
+    "class": "com.alibaba.datax.plugin.reader.tencentosswriter.TencentOssWriter",
+    "description": "TENCENT_OSS_WRITER",
+    "developer": "levi"
+}
+
